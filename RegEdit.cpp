@@ -1,6 +1,34 @@
 
 #include <windows.h>
 
+VOID GetInstallPath(WCHAR *pwchInstallPath)
+{
+    LONG ret = 1;
+    HKEY hAzureKey = NULL;
+
+    if (RegOpenKeyExA(HKEY_LOCAL_MACHINE,
+        "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Azure",
+        0,
+        KEY_WRITE|KEY_READ,
+        &hAzureKey) == ERROR_SUCCESS)
+    {
+        WCHAR szLocation[MAX_PATH] = {0};
+        DWORD dwSize = sizeof(szLocation);
+        DWORD dwType = REG_SZ;
+        LONG ret = RegQueryValueExW(hAzureKey, L"UninstallString", 0, &dwType, (LPBYTE)&szLocation, &dwSize);
+        //wprintf(L"RegQueryValueEx returns %d, dwSize=%d\n", ret, dwSize);
+        if (ERROR_SUCCESS == ret)
+        {
+            //wprintf(L"Location: %s", szLocation);
+        }
+
+        //char *UninstallString = "\"f:\\NAT-T\\Install.exe\" -uninstall";
+        RegCloseKey(hAzureKey);
+    }
+
+    return ret;
+}
+
 VOID DeleteRegUninstall()
 {
     HKEY hMachineKey = NULL;
