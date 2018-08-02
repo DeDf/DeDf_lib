@@ -1,0 +1,18 @@
+break button: Button handle(spy++), MsgType(WINUSER.H).
+  bp user32!InternalCallWinProc ".if(dwo(esp+8)==0x20a6a&dwo(esp+0xc)==0x202){.echo ButtonUp;}.else{gc;}"
+  bp comctl32!Button_WndProc    ".if(dwo(esp+4)==0x20a6a&dwo(esp+0x8)==0x202){.echo ButtonUp;}.else{gc;}"
+
+0:000> kb
+ # ChildEBP RetAddr  Args to Child              
+00 0018fc7c 748262fa 001108fa 00000202 00000000 USER32!ButtonWndProcA+0x2  // 没有重载按钮的时候，断这里
+01 0018fca8 74826d3a 74843851 001108fa 00000202 USER32!InternalCallWinProc+0x23
+02 0018fd20 748277c4 00000000 76da31f4 001108fa USER32!UserCallWinProcCheckWow+0x109
+03 0018fd80 7482788a 76da31f4 00000000 0018fdbc USER32!DispatchMessageWorker+0x3b5
+04 0018fd90 7484d31e 0018fe9c 7efde000 0018fdcc USER32!DispatchMessageW+0xf
+05 0018fdbc 00411f89 0010095c 00000000 00000000 USER32!IsDialogMessageW+0x5f6
+06 0018fed4 00412786 00400000 00000000 002a39d6 Config!WinMain+0x159 [d:\p\setup\setup.cpp @ 187]
+07 0018ff80 004124ed 0018ff94 750f336a 7efde000 Config!__tmainCRTStartup+0x286 [f:\dd\vctools\crt_bld\self_x86\crt\src\crtexe.c @ 589]
+08 0018ff88 750f336a 7efde000 0018ffd4 76f49902 Config!WinMainCRTStartup+0xd [f:\dd\vctools\crt_bld\self_x86\crt\src\crtexe.c @ 414]
+09 0018ff94 76f49902 7efde000 773d0e9c 00000000 kernel32!BaseThreadInitThunk+0xe
+0a 0018ffd4 76f498d5 004111ae 7efde000 00000000 ntdll!__RtlUserThreadStart+0x70
+0b 0018ffec 00000000 004111ae 7efde000 00000000 ntdll!_RtlUserThreadStart+0x1b
