@@ -4,9 +4,7 @@
 
 #pragma comment(lib, "Ws2_32.lib")
 
-struct _mswsock_func {
-    LPFN_CONNECTEX ConnectEx;
-} mswsock_func;
+LPFN_CONNECTEX ConnectEx;
 
 int main(int argc, char *argv[])
 {
@@ -29,7 +27,7 @@ int main(int argc, char *argv[])
     GUID guid = WSAID_CONNECTEX;
     ret = WSAIoctl(sock, SIO_GET_EXTENSION_FUNCTION_POINTER,
         &guid, sizeof(guid),
-        &mswsock_func.ConnectEx, sizeof(mswsock_func.ConnectEx),
+        &ConnectEx, sizeof(ConnectEx),
         &dwBytes, NULL, NULL);
 
     if (ret) {
@@ -62,7 +60,7 @@ int main(int argc, char *argv[])
         addr.sin_addr.s_addr = inet_addr("173.194.37.36"); // google.com
         addr.sin_port = htons(80);
 
-        BOOL ok = mswsock_func.ConnectEx(sock, (SOCKADDR*) &addr, sizeof(addr), NULL, 0, NULL, &ol);
+        BOOL ok = ConnectEx(sock, (SOCKADDR*) &addr, sizeof(addr), NULL, 0, NULL, &ol);
         if (ok)
         {
             printf("ConnectEx succeeded immediately\n");
