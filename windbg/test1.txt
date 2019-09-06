@@ -1,0 +1,16 @@
+r $t0 = poi(fffff80125a01298 + 0x10)
+.printf "PID : %I64x, %I64d, %msu\n", poi($t0 + 0x20), poi($t0 + 0x38), poi($t0 + 0x30);
+
+r $t1 = poi($t0 + 8)
+.while(@$t1 != 0)
+{
+    .printf "PID : %I64x, %I64d, %msu\n", poi($t1 + 0x20), poi($t1 + 0x38), poi($t1 + 0x30);
+    r $t1 = poi($t1 + 8);
+}
+
+r $t2 = poi($t0 + 0x10)
+.while(@$t2 != 0)
+{
+    .printf "PID : %I64x, %I64d, %msu\n", poi($t2 + 0x20), poi($t2 + 0x38), poi($t2 + 0x30);
+    r $t2 = poi($t2 + 0x10);
+}

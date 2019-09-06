@@ -1,31 +1,31 @@
-// 1.cpp : Defines the entry point for the console application.
-//
-
-#include <windows.h>
 #include <stdio.h>
+#include <windows.h>
 
-typedef NTSTATUS(WINAPI *fnRtlGetVersion)(PRTL_OSVERSIONINFOW lpVersionInformation);
-ULONG ulOSBuildNumber;
+typedef LONG (__stdcall *fnRtlGetVersion)(PRTL_OSVERSIONINFOW lpVersionInformation);
 
-ULONG GetOSBuildNumber()
+int main(void)
 {
-    if (ulOSBuildNumber)
-        return ulOSBuildNumber;
+    HMODULE hNtdll = GetModuleHandleW(L"ntdll.dll");
+    if (hNtdll)
+    {
+        fnRtlGetVersion pRtlGetVersion = (fnRtlGetVersion)GetProcAddress(hNtdll, "RtlGetVersion");
+        if (pRtlGetVersion)
+        {
+            RTL_OSVERSIONINFOW VersionInformation = { 0 };
+            VersionInformation.dwOSVersionInfoSize = sizeof(RTL_OSVERSIONINFOW);
 
-    fnRtlGetVersion MyRtlGetVersion = (fnRtlGetVersion)
-        GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "RtlGetVersion");
+            LONG status = pRtlGetVersion(&VersionInformation);
+            if (!status)
+            {
+                ULONG dwMajorVersion = VersionInformation.dwMajorVersion;
+                ULONG dwMinorVersion = VersionInformation.dwMinorVersion;
+                ULONG dwBuildNumber  = VersionInformation.dwBuildNumber;
 
-    RTL_OSVERSIONINFOW VersionInformation = { 0 };
-    if (MyRtlGetVersion)
-        MyRtlGetVersion(&VersionInformation);
+                printf("winver %d.%d, build : %d\n", dwMajorVersion, dwMinorVersion, dwBuildNumber);
+            }
+        }
+    }
 
-    ulOSBuildNumber = VersionInformation.dwBuildNumber;
-    return ulOSBuildNumber;
-}
-
-void main()
-{
-    ULONG ver = GetOSBuildNumber();
-    printf("%d\n", ver);
     getchar();
+    return 0;
 }

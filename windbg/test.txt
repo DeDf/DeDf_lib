@@ -1,0 +1,9 @@
+r $t0 = @@masm(poi[PsInitialSystemProcess]);                                                                      $$ $t0为System进程的_EPROCESS指针;
+r $t1 = @$t0 + @@c++(0x88);                                                                                       $$ $t1为_EPROCESS的ActiveProcessLinks域的指针;        
+r $t2 = @@c++(#CONTAINING_RECORD(@@masm(poi[@$t1]), _EPROCESS, ActiveProcessLinks)) + @@c++(0x88);                $$ $t2为下一个_EPROCESS结构的ActiveProcessLinks域的指针;
+
+.while(@$t1 != @$t2)
+{
+    .printf "%ma\n", @@c++(@$t2+0xec);
+    r $t2 = @@c++(#CONTAINING_RECORD(@@masm(poi[@$t2]), _EPROCESS, ActiveProcessLinks)) + @@c++(0x88);
+}
