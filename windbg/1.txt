@@ -1,0 +1,24 @@
+x64 bp nt!IoCreateFile
+
+r $t0 = poi[@r8 + 10];
+r $t1 = wo[$t0];
+r $t2 = poi[$t0 + 8];
+r $t3 = $t2 + $t1 - 2;
+.if (wo[$t3] == '-') {.echo "aaaa"}
+
+
+"r $t0 = @rax;gc"
+"r $t1 = poi[$t0];.printf \"%p\n\", $t1; gc"
+
+".if (poi[@r8 + 10] != 0) {du poi[poi[@r8 + 10]+8]} .else {gc}"
+
+ 0 e fffff880`055a2947     0001 (0001) BAPIDRV64+0x1867A "r $t0 = @rax; gc"
+ 1 e fffff880`055a2950     0001 (0001) BAPIDRV64+0x18950 "r $t0; du poi[$t0 + 8]; gc"
+
+_file_object
+BAPIDRV64+0x1867A "r $t0 = @rax; gc"
+BAPIDRV64+0x186b1 "r $t1 = poi[$t0]; .printf \"%p\n\",$t1; gc"
+
+handle
+ 2 e fffff880`053514bd     0001 (0001) BAPIDRV64+0x1c4bd "r $t0 = poi[@rsp + 0x28];gc"
+ 3 e fffff880`053514c3     0001 (0001) BAPIDRV64+0x1c4c3 "dq $t0 l1; gc"
