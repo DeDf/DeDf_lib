@@ -125,8 +125,8 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
     return status;
 }
 
-//完成历程
-NTSTATUS IoCompletionRoutineEx(PDEVICE_OBJECT DeviceObject, PIRP Irp, PVOID Context)
+// 完成历程
+NTSTATUS IoCompletionRoutine(PDEVICE_OBJECT DeviceObject, PIRP Irp, PVOID Context)
 {
     *Irp->UserIosb = Irp->IoStatus;
 
@@ -200,7 +200,7 @@ NTSTATUS IrpFileWrite(PFILE_OBJECT pFileObject, PLARGE_INTEGER ByteOffset, ULONG
     irpSp->Parameters.Write.ByteOffset = *ByteOffset;
 
     KeInitializeEvent(&event, SynchronizationEvent, FALSE);
-    IoSetCompletionRoutine(irp, IoCompletionRoutineEx, NULL, TRUE, TRUE, TRUE);
+    IoSetCompletionRoutine(irp, IoCompletionRoutine, NULL, TRUE, TRUE, TRUE);
     status = IoCallDriver(deviceObject, irp);
     if (status == STATUS_PENDING)
         status = KeWaitForSingleObject(&event, Executive, KernelMode, TRUE, NULL);
@@ -273,7 +273,7 @@ NTSTATUS IrpDeleteFileEx(PFILE_OBJECT pFileObject)
     irpSp->Parameters.SetFile.FileObject = pFileObject;
 
     // 设置完成例程
-    IoSetCompletionRoutine(pIrp, IoCompletionRoutineEx, NULL, TRUE, TRUE, TRUE);
+    IoSetCompletionRoutine(pIrp, IoCompletionRoutine, NULL, TRUE, TRUE, TRUE);
 
     //如果没有这3行，就无法删除正在运行的文件
     pSectionObjectPointer = pFileObject->SectionObjectPointer;
@@ -353,7 +353,7 @@ NTSTATUS IrpDeleteFileForce(PFILE_OBJECT pFileObject)
     irpSp->Parameters.SetFile.FileObject = pFileObject;
 
     // 设置完成例程
-    IoSetCompletionRoutine(pIrp, IoCompletionRoutineEx, NULL, TRUE, TRUE, TRUE);
+    IoSetCompletionRoutine(pIrp, IoCompletionRoutine, NULL, TRUE, TRUE, TRUE);
 
 
     //设置变量
@@ -439,7 +439,7 @@ NTSTATUS IrpDeleteFile(PFILE_OBJECT pFileObject)
     irpSp->Parameters.SetFile.FileInformationClass = FileDispositionInformation;
     irpSp->Parameters.SetFile.FileObject = pFileObject;
 
-    IoSetCompletionRoutine(pIrp, IoCompletionRoutineEx, NULL, TRUE, TRUE, TRUE);
+    IoSetCompletionRoutine(pIrp, IoCompletionRoutine, NULL, TRUE, TRUE, TRUE);
 
     // 派发IRP
     ntStatus = IoCallDriver(DeviceObject, pIrp);
@@ -523,7 +523,7 @@ NTSTATUS irpSetFileAttributes(PFILE_OBJECT pFileObject, PIO_STATUS_BLOCK  pIoSta
     irpSp->Parameters.SetFile.FileObject = pFileObject;
 
 
-    IoSetCompletionRoutine(Irp, IoCompletionRoutineEx, NULL, TRUE, TRUE, TRUE);
+    IoSetCompletionRoutine(Irp, IoCompletionRoutine, NULL, TRUE, TRUE, TRUE);
     ntStatus=IoCallDriver(DeviceObject, Irp);
     if (ntStatus == STATUS_PENDING)
         KeWaitForSingleObject(&SycEvent, Executive, KernelMode, TRUE, NULL);
@@ -533,11 +533,11 @@ NTSTATUS irpSetFileAttributes(PFILE_OBJECT pFileObject, PIO_STATUS_BLOCK  pIoSta
 
 }
 
-//获取设备对象
-NTSTATUS GetDriveObject(PUNICODE_STRING pusDriveName, PDEVICE_OBJECT *ppDeviceObject, PDEVICE_OBJECT *ppReadDevice)  // done!
+// 获取设备对象
+NTSTATUS GetDriveObject(PUNICODE_STRING pusDriveName, PDEVICE_OBJECT *ppDeviceObject, PDEVICE_OBJECT *ppReadDevice)
 {
     NTSTATUS status;
-    HANDLE DeviceHandle = NULL;
+    HANDLE hDevice = NULL;
     OBJECT_ATTRIBUTES objectAttributes;
     IO_STATUS_BLOCK ioStatus;
 
@@ -547,9 +547,9 @@ NTSTATUS GetDriveObject(PUNICODE_STRING pusDriveName, PDEVICE_OBJECT *ppDeviceOb
     else
         *ppDeviceObject = *ppReadDevice = NULL;
 
-    //  \\??\\C:
+    //  "\\??\\C:\\"
     InitializeObjectAttributes(&objectAttributes, pusDriveName, OBJ_CASE_INSENSITIVE, NULL, NULL);
-    status = IoCreateFile(&DeviceHandle,
+    status = IoCreateFile(&hDevice,
         SYNCHRONIZE | FILE_ANY_ACCESS,
         &objectAttributes,
         &ioStatus,
@@ -566,12 +566,12 @@ NTSTATUS GetDriveObject(PUNICODE_STRING pusDriveName, PDEVICE_OBJECT *ppDeviceOb
 
     if (!status)
     {
-        PFILE_OBJECT pFileObject;
+        PFILE_OBJECT pFileObject = NULL;
 
-        status = ObReferenceObjectByHandle(DeviceHandle, FILE_READ_DATA, *IoFileObjectType, KernelMode, &pFileObject, NULL);
+        status = ObReferenceObjectByHandle(hDevice, FILE_READ_DATA, *IoFileObjectType, KernelMode, &pFileObject, NULL);
         if (!status)
         {
-            if (pFileObject->Vpb)
+            if (pFileObject && pFileObject->Vpb)
             {
                 *ppDeviceObject = pFileObject->Vpb->DeviceObject;
                 *ppReadDevice   = pFileObject->Vpb->RealDevice;
@@ -580,7 +580,7 @@ NTSTATUS GetDriveObject(PUNICODE_STRING pusDriveName, PDEVICE_OBJECT *ppDeviceOb
             ObDereferenceObject(pFileObject);
         }
 
-        ZwClose(DeviceHandle);
+        ZwClose(hDevice);
     }
 
     return status;
@@ -711,7 +711,7 @@ NTSTATUS IrpCreateFile(PUNICODE_STRING pusFilePathName, ACCESS_MASK DesiredAcces
     IrpSp->Parameters.Create.ShareAccess = 0; //(USHORT)FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE;
     IrpSp->Parameters.Create.EaLength = 0;
 
-    IoSetCompletionRoutine(pIrp, IoCompletionRoutineEx, 0, TRUE, TRUE, TRUE);
+    IoSetCompletionRoutine(pIrp, IoCompletionRoutine, 0, TRUE, TRUE, TRUE);
     status = IoCallDriver(pDeviceObject, pIrp);
     if (status == STATUS_PENDING)
         KeWaitForSingleObject(&kEvent, Executive, KernelMode, TRUE, 0);
@@ -790,7 +790,7 @@ IrpReadFile (
     irpSp->Parameters.Read.ByteOffset = *pByteOffset;
 
     KeInitializeEvent(&event, SynchronizationEvent, FALSE);
-    IoSetCompletionRoutine(pirp, IoCompletionRoutineEx, NULL, TRUE, TRUE, TRUE);
+    IoSetCompletionRoutine(pirp, IoCompletionRoutine, NULL, TRUE, TRUE, TRUE);
     status = IoCallDriver(DeviceObject, pirp);
     if (status == STATUS_PENDING)
         status = KeWaitForSingleObject(&event, Executive, KernelMode, TRUE, NULL);
