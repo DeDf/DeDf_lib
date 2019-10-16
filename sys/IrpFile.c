@@ -588,26 +588,23 @@ NTSTATUS GetDriveObject(PUNICODE_STRING pusDriveName, PDEVICE_OBJECT *ppDeviceOb
 
 //IRP打开文件
 
-#define  SYMBOLICLINKLEN   7     // "\\??\\c:\\"
+#define  SYMBOLICLINKLEN   7     // L"\\??\\c:\\"
 
 NTSTATUS IrpCreateFile(PUNICODE_STRING pusFilePathName, ACCESS_MASK DesiredAccess, PIO_STATUS_BLOCK pIoStatusBlock, PFILE_OBJECT *ppFileObject)
 {
     NTSTATUS status;
+    PFILE_OBJECT  pFileObject;
     //
     PIRP pIrp;
     PIO_STACK_LOCATION IrpSp;
     KEVENT kEvent;
     //
     IO_SECURITY_CONTEXT SecurityContext;
-    static ACCESS_STATE AccessState;
-    static AUX_ACCESS_DATA AuxData;
-    //
-    OBJECT_ATTRIBUTES ObjectAttributes;
-    PFILE_OBJECT  pFileObject;
+    ACCESS_STATE AccessState;
+    AUX_ACCESS_DATA AuxData;
     //
     PDEVICE_OBJECT pDeviceObject = NULL;
     PDEVICE_OBJECT pReadDevice = NULL;
-    wchar_t *pwchFileNameBuf = NULL;
 
     //参数效验
     if (pusFilePathName==NULL || pIoStatusBlock==NULL || ppFileObject==NULL ||
@@ -638,9 +635,11 @@ NTSTATUS IrpCreateFile(PUNICODE_STRING pusFilePathName, ACCESS_MASK DesiredAcces
 
     //----------------------------------------------------------
     {
+        OBJECT_ATTRIBUTES ObjectAttributes;
         ULONG FileObject_FileNameLen = pusFilePathName->Length - (SYMBOLICLINKLEN*2 - 2);
+        WCHAR *pwchFileNameBuf =
+            ExAllocatePoolWithTag(NonPagedPool, FileObject_FileNameLen+2, 'DeDf');
 
-        pwchFileNameBuf = ExAllocatePoolWithTag(NonPagedPool, FileObject_FileNameLen+2, 'DeDf');
         if (pwchFileNameBuf == NULL)
             return STATUS_INSUFFICIENT_RESOURCES;
 
@@ -675,7 +674,7 @@ NTSTATUS IrpCreateFile(PUNICODE_STRING pusFilePathName, ACCESS_MASK DesiredAcces
 
     SecurityContext.SecurityQos = NULL;
     SecurityContext.AccessState = &AccessState;
-    SecurityContext.DesiredAccess = DesiredAccess; //FILE_ALL_ACCESS;
+    SecurityContext.DesiredAccess = DesiredAccess;
     SecurityContext.FullCreateOptions = 0;
 
     //----------------------------------------------------------

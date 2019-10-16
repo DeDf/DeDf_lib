@@ -80,7 +80,7 @@ NTSTATUS GetDriveObject(PUNICODE_STRING pusDriveName, PDEVICE_OBJECT *ppDeviceOb
     else
         *ppDeviceObject = *ppReadDevice = NULL;
 
-    //  "\\??\\C:\\"
+    //  L"\\??\\C:\\"
     InitializeObjectAttributes(&ObjectAttributes, pusDriveName, OBJ_CASE_INSENSITIVE, NULL, NULL);
     status = IoCreateFile(&hDevice,
         SYNCHRONIZE | FILE_ANY_ACCESS,
@@ -159,10 +159,10 @@ MJ_DeviceControl (
 {
     NTSTATUS            status = STATUS_UNSUCCESSFUL;
     PIO_STACK_LOCATION  pIrpSp = IoGetCurrentIrpStackLocation( Irp );
-
-    ULONG     inBufLength  = pIrpSp->Parameters.DeviceIoControl.InputBufferLength;
-    ULONG     outBufLength = pIrpSp->Parameters.DeviceIoControl.OutputBufferLength;
-    PCHAR     inBuf, outBuf;
+    //
+    ULONG  inBufLength  = pIrpSp->Parameters.DeviceIoControl.InputBufferLength;
+    ULONG  outBufLength = pIrpSp->Parameters.DeviceIoControl.OutputBufferLength;
+    PCHAR  inBuf, outBuf;
 
     switch ( pIrpSp->Parameters.DeviceIoControl.IoControlCode )
     {
