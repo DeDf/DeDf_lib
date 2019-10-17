@@ -548,7 +548,7 @@ NTSTATUS GetDriveObject(PUNICODE_STRING pusDriveName, PDEVICE_OBJECT *ppDeviceOb
         *ppDeviceObject = *ppReadDevice = NULL;
 
     //  "\\??\\C:\\"
-    InitializeObjectAttributes(&objectAttributes, pusDriveName, OBJ_CASE_INSENSITIVE, NULL, NULL);
+    InitializeObjectAttributes(&objectAttributes, pusDriveName, OBJ_KERNEL_HANDLE | OBJ_CASE_INSENSITIVE, NULL, NULL);
     status = IoCreateFile(&hDevice,
         SYNCHRONIZE | FILE_ANY_ACCESS,
         &objectAttributes,
@@ -668,8 +668,7 @@ NTSTATUS IrpCreateFile(PUNICODE_STRING pusFilePathName, ACCESS_MASK DesiredAcces
     status = SeCreateAccessState(&AccessState, &AuxData, FILE_ALL_ACCESS, IoGetFileObjectGenericMapping());
     if (!NT_SUCCESS(status))
     {
-        ObDereferenceObject(pFileObject);
-        return status;
+        goto L_DeRefFileExit;
     }
 
     SecurityContext.SecurityQos = NULL;
@@ -682,8 +681,8 @@ NTSTATUS IrpCreateFile(PUNICODE_STRING pusFilePathName, ACCESS_MASK DesiredAcces
     pIrp = IoAllocateIrp(pDeviceObject->StackSize, FALSE);
     if (!pIrp)
     {
-        ObDereferenceObject(pFileObject);
-        return STATUS_INSUFFICIENT_RESOURCES;
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        goto L_DeRefFileExit;
     }
 
     KeInitializeEvent(&kEvent, SynchronizationEvent, FALSE);
@@ -705,7 +704,7 @@ NTSTATUS IrpCreateFile(PUNICODE_STRING pusFilePathName, ACCESS_MASK DesiredAcces
     IrpSp->DeviceObject = pDeviceObject;
     IrpSp->FileObject = pFileObject;
     IrpSp->Parameters.Create.SecurityContext = &SecurityContext;
-    IrpSp->Parameters.Create.Options = (FILE_OPEN_IF << 24) | 0;
+    IrpSp->Parameters.Create.Options = (FILE_OPEN << 24) | 0;
     IrpSp->Parameters.Create.FileAttributes = (USHORT)FILE_ATTRIBUTE_NORMAL;
     IrpSp->Parameters.Create.ShareAccess = 0; //(USHORT)FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE;
     IrpSp->Parameters.Create.EaLength = 0;
@@ -718,7 +717,9 @@ NTSTATUS IrpCreateFile(PUNICODE_STRING pusFilePathName, ACCESS_MASK DesiredAcces
 
     if (!NT_SUCCESS(status))
     {
-        pFileObject->DeviceObject = NULL;
+L_DeRefFileExit:
+        pFileObject->DeviceObject = NULL;          // Irp(FILE_OPEN)未成功，避免Nt!IopDeleteFile内一系列操作
+        ExFreePool(pFileObject->FileName.Buffer);  // 由于上一句，这里需要手动释放
         ObDereferenceObject(pFileObject);
     }
     else
