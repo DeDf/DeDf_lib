@@ -36,6 +36,11 @@ SeCreateAccessState (
     PGENERIC_MAPPING GenericMapping
     );
 
+VOID
+SeDeleteAccessState (
+    PACCESS_STATE AccessState
+    );
+
 typedef struct _AUX_ACCESS_DATA {
     PPRIVILEGE_SET PrivilegesUsed;
     GENERIC_MAPPING GenericMapping;
@@ -668,6 +673,7 @@ NTSTATUS IrpCreateFile(PUNICODE_STRING pusFilePathName, ACCESS_MASK DesiredAcces
     status = SeCreateAccessState(&AccessState, &AuxData, FILE_ALL_ACCESS, IoGetFileObjectGenericMapping());
     if (!NT_SUCCESS(status))
     {
+        SecurityContext.AccessState = NULL;
         goto L_DeRefFileExit;
     }
 
@@ -731,6 +737,8 @@ L_DeRefFileExit:
         *ppFileObject = pFileObject;
     }
 
+    if (SecurityContext.AccessState)
+        SeDeleteAccessState(SecurityContext.AccessState);
     return status;
 }
 
