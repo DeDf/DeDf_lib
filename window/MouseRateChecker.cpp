@@ -3,7 +3,30 @@
 #define _WIN32_WINNT  0x0501
 #include <windows.h>
 
-ULONG64 g_MouseMsgCount;
+// usUsagePage
+// 1 for generic desktop controls
+// 2 for simulation controls
+// 3 for vr
+// 4 for sport
+// 5 for game
+// 6 for generic device
+// 7 for keyboard
+// 8 for leds
+// 9 button
+// 
+// usUsage values when usUsagePage is 1
+// 0 - undefined
+// 1 - pointer
+// 2 - mouse
+// 3 - reserved
+// 4 - joystick
+// 5 - game pad
+// 6 - keyboard
+// 7 - keypad
+// 8 - multi-axis controller
+// 9 - Tablet PC contro
+
+ULONG g_MouseMsgCount;
 
 LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
 {
@@ -30,32 +53,28 @@ LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
 
 	case WM_INPUT:
 	{
-		HRAWINPUT hrawinput = (HRAWINPUT)lparam;
-		UINT size;
-		GetRawInputData(hrawinput, RID_INPUT, NULL, &size, sizeof(RAWINPUTHEADER));
+        RAWINPUT input;
+        UINT size = sizeof(RAWINPUT);
+        GetRawInputData((HRAWINPUT)lparam, RID_INPUT, &input, &size, sizeof(RAWINPUTHEADER));
 
-		if (size <= sizeof(RAWINPUT))
-		{
-			RAWINPUT input;
-			GetRawInputData(hrawinput, RID_INPUT, &input, &size, sizeof(RAWINPUTHEADER));
-
-			if (input.header.dwType == RIM_TYPEMOUSE)
-			{
+        if (size <= sizeof(RAWINPUT))
+        {
+            if (input.header.dwType == RIM_TYPEMOUSE)
+            {
                 ++g_MouseMsgCount;
-			}
-		}
+            }
+        }
+
         break;
 	}
 
 	case WM_PAINT:
 	{
         PAINTSTRUCT ps;
-        HDC hdc;
-
-        hdc = BeginPaint(hwnd, &ps);
+        HDC hdc = BeginPaint(hwnd, &ps);
 
         char tmp[100];
-        ULONG len = sprintf(tmp, "%I64d\n", g_MouseMsgCount);
+        ULONG len = sprintf(tmp, "%d\n", g_MouseMsgCount);
         TextOutA(hdc,5,5,tmp,len-1);
 
         EndPaint(hwnd, &ps);
@@ -97,19 +116,14 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int show)
 
         if (hwnd)
         {
-            RAWINPUTDEVICE devices[2] = {0};
+            RAWINPUTDEVICE MouseDevice;
             //
-            devices[0].usUsagePage = 0x01;
-            devices[0].usUsage = 0x02;
-            devices[0].dwFlags = 0x00;
-            devices[0].hwndTarget = hwnd;
-            //
-            devices[1].usUsagePage = 0x01;
-            devices[1].usUsage = 0x06;
-            devices[1].dwFlags = 0x00;
-            devices[1].hwndTarget = hwnd;
+            MouseDevice.usUsagePage = 0x01;  // 1 for generic desktop controls
+            MouseDevice.usUsage = 0x02;      //  2 - mouse
+            MouseDevice.dwFlags = 0x00;
+            MouseDevice.hwndTarget = hwnd;
 
-            if (RegisterRawInputDevices(devices, sizeof(devices)/sizeof(*devices), sizeof(*devices)))
+            if (RegisterRawInputDevices(&MouseDevice, 1, sizeof(MouseDevice)))
             {
                 ShowWindow(hwnd, show);
                 UpdateWindow(hwnd);
