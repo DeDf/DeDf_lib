@@ -55,8 +55,8 @@ LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
 	{
         RAWINPUT input;
         UINT size = sizeof(RAWINPUT);
-        GetRawInputData((HRAWINPUT)lparam, RID_INPUT, &input, &size, sizeof(RAWINPUTHEADER));
 
+        GetRawInputData((HRAWINPUT)lparam, RID_INPUT, &input, &size, sizeof(RAWINPUTHEADER));
         if (size <= sizeof(RAWINPUT))
         {
             if (input.header.dwType == RIM_TYPEMOUSE)
@@ -70,16 +70,15 @@ LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
 
 	case WM_PAINT:
 	{
-        PAINTSTRUCT ps;
-        HDC hdc = BeginPaint(hwnd, &ps);
-
         char tmp[100];
         ULONG len = sprintf(tmp, "%d\n", g_MouseMsgCount);
-        TextOutA(hdc,5,5,tmp,len-1);
+        g_MouseMsgCount = 0;
 
+        PAINTSTRUCT ps;
+        HDC hdc = BeginPaint(hwnd, &ps);
+        TextOutA(hdc,5,5,tmp,len-1);
         EndPaint(hwnd, &ps);
 
-        g_MouseMsgCount = 0;
         break;
 	}
 
